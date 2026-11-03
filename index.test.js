@@ -312,4 +312,3 @@ describe('usage profile validation', () => {
     ).toThrow(/timestamp out of range/);
   });
 });
-
