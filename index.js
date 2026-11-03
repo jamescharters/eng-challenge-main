@@ -72,6 +72,7 @@ const calculateEnergyUsageSimple = (profile) => {
   let totalEnergyUsage = 0;
   let latestTimestamp = 0;
 
+  // TODO: TypeScript could add safety around values such as profile.
   // TODO: what about negative timestamps? or absurdly large?
   // TODO: what about different state values beyond 'on' and 'off'?
   // TODO: what about multiple appliances / accounts etc

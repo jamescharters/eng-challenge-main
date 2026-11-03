@@ -280,7 +280,7 @@ describe('calculateEnergyUsageForDay', () => {
   });
 
   it('should reject a decimal day number with a valid profile', () => {
-    // The supplied test above omits the profile; this checks the intended call.
+    // The originally supplied test above omits the profile, so this actually checks the intended call.
     expect(() => calculateEnergyUsageForDay(monthProfile, 3.76)).toThrow(
       /must be an integer/
     );
