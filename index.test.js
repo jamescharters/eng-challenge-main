@@ -76,6 +76,27 @@ describe('calculateEnergyUsageSimple', () => {
   });
 });
 
+describe('calculateEnergyUsageSimple timestamp boundaries', () => {
+  it('handles events at the first and last valid minute', () => {
+    expect(
+      calculateEnergyUsageSimple({
+        initial: 'off',
+        events: [
+          { timestamp: 0, state: 'on' },
+          { timestamp: 1439, state: 'off' },
+        ],
+      })
+    ).toEqual(1439);
+
+    expect(
+      calculateEnergyUsageSimple({
+        initial: 'off',
+        events: [{ timestamp: 1439, state: 'on' }],
+      })
+    ).toEqual(1);
+  });
+});
+
 // Part 2
 
 describe('calculateEnergySavings', () => {
