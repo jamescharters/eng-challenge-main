@@ -36,7 +36,22 @@ const MAX_IN_PERIOD = 1440;
  * ```
  */
 
-const calculateEnergyUsageSimple = (profile) => {}
+const calculateEnergyUsageSimple = (profile) => {
+  let currentState = profile.initial;
+  let totalEnergyUsage = 0;
+  let latestTimestamp = 0;
+
+  for (const event of profile.events) {
+    if (currentState === 'on') {
+      totalEnergyUsage += event.timestamp - latestTimestamp;
+    }
+
+    currentState = event.state;
+    latestTimestamp = event.timestamp;
+  }
+
+  return totalEnergyUsage;
+};
 
 /**
  * PART 2
