@@ -293,6 +293,36 @@ describe('ordered and indexed daily usage variants', () => {
     expect(dailyUsageIndex.getEnergyUsageForDay(1)).toEqual(1000);
     expect(dailyUsageIndex.getEnergyUsageForDay(2)).toEqual(0);
   });
+
+  it('preserves the input order of events with matching timestamps', () => {
+    expect(
+      calculateEnergyUsageForDaySorted(
+        {
+          initial: 'off',
+          events: [
+            { state: 'off', timestamp: 200 },
+            { state: 'on', timestamp: 100 },
+            { state: 'off', timestamp: 100 },
+          ],
+        },
+        1
+      )
+    ).toEqual(0);
+
+    expect(
+      calculateEnergyUsageForDaySorted(
+        {
+          initial: 'off',
+          events: [
+            { state: 'off', timestamp: 200 },
+            { state: 'off', timestamp: 100 },
+            { state: 'on', timestamp: 100 },
+          ],
+        },
+        1
+      )
+    ).toEqual(100);
+  });
 });
 
 describe('usage profile validation', () => {
