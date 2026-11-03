@@ -351,6 +351,19 @@ describe('usage profile validation', () => {
     );
   });
 
+  it('rejects unknown initial and event states', () => {
+    expect(() =>
+      calculateEnergyUsageSimple({ initial: 'standby', events: [] })
+    ).toThrow(/invalid state/);
+
+    expect(() =>
+      calculateEnergyUsageSimple({
+        initial: 'off',
+        events: [{ state: 'standby', timestamp: 100 }],
+      })
+    ).toThrow(/invalid state/);
+  });
+
   it.each([NaN, Infinity, 10.5])(
     'rejects a timestamp that is not a finite integer: %p',
     (timestamp) => {

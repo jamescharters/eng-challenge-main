@@ -3,13 +3,24 @@
 const MAX_IN_PERIOD = 1440;
 const DAYS_IN_YEAR = 365; // technically, its 365.25, but we ignore leap years for simplicity
 const MAX_IN_MONTH = DAYS_IN_YEAR * MAX_IN_PERIOD;
+const USAGE_STATES = ['on', 'off'];
+const SAVINGS_STATES = [...USAGE_STATES, 'auto-off'];
 
-const validateUsageProfile = (profile, periodLength) => {
+const validateUsageProfile = (profile, periodLength, allowedStates) => {
   if (!Array.isArray(profile?.events)) {
     throw new Error('events must be an array');
   }
 
+  // Unknown states would otherwise be counted as off without warning.
+  if (!allowedStates.includes(profile.initial)) {
+    throw new Error('invalid state');
+  }
+
   for (const event of profile.events) {
+    if (!allowedStates.includes(event.state)) {
+      throw new Error('invalid state');
+    }
+
     if (
       !Number.isFinite(event.timestamp) ||
       !Number.isInteger(event.timestamp)
@@ -66,7 +77,7 @@ const validateUsageProfile = (profile, periodLength) => {
  * @throws {Error} If the profile has invalid states, timestamps, or event order.
  */
 const calculateEnergyUsageSimple = (profile) => {
-  validateUsageProfile(profile, MAX_IN_PERIOD);
+  validateUsageProfile(profile, MAX_IN_PERIOD, USAGE_STATES);
 
   let currentState = profile.initial;
   let totalEnergyUsage = 0;
@@ -74,7 +85,6 @@ const calculateEnergyUsageSimple = (profile) => {
 
   // TODO: TypeScript could add safety around values such as profile.
   // TODO: what about negative timestamps? or absurdly large?
-  // TODO: what about different state values beyond 'on' and 'off'?
   // TODO: what about multiple appliances / accounts etc
   // TODO: what about different usage quantities (kWh?) per time interval?
 
@@ -139,7 +149,7 @@ const calculateEnergyUsageSimple = (profile) => {
  * @throws {Error} If the profile has invalid states, timestamps, or event order.
  */
 const calculateEnergySavings = (profile) => {
-  validateUsageProfile(profile, MAX_IN_PERIOD);
+  validateUsageProfile(profile, MAX_IN_PERIOD, SAVINGS_STATES);
 
   let currentState = profile.initial;
   let totalEnergySaved = 0;
@@ -215,7 +225,7 @@ const validateDay = (day) => {
  */
 const calculateEnergyUsageForDay = (monthUsageProfile, day) => {
   validateDay(day);
-  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH);
+  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES);
 
   const startOfTargetDay = (day - 1) * MAX_IN_PERIOD;
   const endOfTargetDay = day * MAX_IN_PERIOD;
@@ -261,7 +271,7 @@ const sortEventsByTimestamp = (events) => {
 };
 
 const createDailyUsageIndex = (monthUsageProfile) => {
-  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH);
+  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES);
 
   const sortedEvents = sortEventsByTimestamp(monthUsageProfile.events);
   const dailyUsage = [];
@@ -308,7 +318,7 @@ const createDailyUsageIndex = (monthUsageProfile) => {
 };
 
 const calculateEnergyUsageForDaySorted = (monthUsageProfile, day) => {
-  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH);
+  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES);
 
   const dailyUsageIndex = createDailyUsageIndex(monthUsageProfile);
   return dailyUsageIndex.getEnergyUsageForDay(day);
