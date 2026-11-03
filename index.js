@@ -178,6 +178,17 @@ const validateDay = (day) => {
   }
 };
 
+/**
+ * Calculates the number of minutes an appliance is on during a requested day.
+ * Events before that day establish its initial state; in-day events are rebased
+ * to daily timestamps before the Part 1 calculator is used.
+ *
+ * @param {{initial: string, events: Array<{state: string, timestamp: number}>}} monthUsageProfile
+ *   The initial appliance state and chronological state-change events for a month.
+ * @param {number} day The one-based day number, from 1 through 365.
+ * @returns {number} The requested day's total on-time in minutes.
+ * @throws {Error} If the day or monthly profile is invalid.
+ */
 const calculateEnergyUsageForDay = (monthUsageProfile, day) => {
   validateDay(day);
 
