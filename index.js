@@ -273,6 +273,12 @@ const calculateEnergyUsageForDay = (monthUsageProfile, day) => {
   return calculateEnergyUsageSimple(dayUsageProfile);
 };
 
+/**
+ * PART 4: JC playground experiments with ordered and indexed daily usage variantsaa
+ */
+
+// Sort chronologically without mutating the caller's events. When timestamps
+// match, preserve their original order because that order defines later state.
 const sortEventsByTimestamp = (events) => {
   const originalEvents = events.map((event, originalIndex) => ({
     event,
@@ -287,6 +293,10 @@ const sortEventsByTimestamp = (events) => {
   return originalEvents.map(({ event }) => event);
 };
 
+// Another optimisation to precompute daily usage for all days in the month.
+// This allows O(1) retrieval for any day, which is useful when multiple queries
+// for different days are expected. It trades memory for speed by storing the
+// usage for all 365 days upfront, which may be less than ideal in some cases.
 const createDailyUsageIndex = (monthUsageProfile) => {
   validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES);
 
@@ -334,6 +344,9 @@ const createDailyUsageIndex = (monthUsageProfile) => {
   };
 };
 
+// Hopeful optimisation: pre-sort events for faster daily usage calculation.
+// Indexing daily usage allows O(1) retrieval of energy usage for any given day.
+// This trades memory for speed because repeated lookups reuse precomputed usage.
 const calculateEnergyUsageForDaySorted = (monthUsageProfile, day) => {
   validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES);
 
@@ -342,15 +355,56 @@ const calculateEnergyUsageForDaySorted = (monthUsageProfile, day) => {
 };
 
 /**
- * Streaming design note:
- * A stream cannot guarantee timestamp order at arrival time. A simple solution
- * buffers events until a watermark (for example, five minutes behind the latest
- * event timestamp), then processes only events at or before that watermark.
- * This delays final results but avoids corrections. Alternatively, retain event
- * history and recalculate affected intervals when a late event arrives; this
- * gives lower latency but publishes provisional totals that may later change.
- * Real streams also need an event ID for deduplication and separate state per
- * appliance ID.
+ * PART 5: Streaming thoughts and trade-offs
+ *
+ * The batch APIs can sort a complete profile before calculating usage. A stream
+ * cannot as an event for 10:00 might arrive after one for 10:05. Since each event
+ * defines the state of the interval after it, accepting the late event can
+ * change both the appliance state and the usage total up to the next event. Bad!
+ *
+ * The practical choice is whether the product prefers final answers later or
+ * fast answers that might need correcting. Two possible ideas are...
+ *
+ * 1. Wait for confidence with a watermark
+ *    I.e. Keep a timestamp-ordered buffer for each appliance. Process an event only
+ *    when it is older than a configured lateness allowance behind the newest
+ *    event seen. With a five-minute allowance, events older than five minutes
+ *    can be treated as ordered and their totals as final. This is a good fit
+ *    for billing or compliance, where corrections are expensive. The cost is
+ *    delayed results, buffered memory + explicit policy for events that
+ *    arrive after the window closes (that is, reject, quarantine, or correct them)
+ *
+ *    EXAMPLE
+ *    Pseudocode:
+ *      onEvent(applianceId, event):
+ *        1. ignore event if its ID was already seen
+ *        2. insert event into appliance buffer by timestamp, then sequence
+ *        3. latestSeen = max(latestSeen, event.timestamp)
+ *        4. watermark = latestSeen - allowedLateness
+ *        5. while oldest buffered event.timestamp <= watermark:
+ *             apply event and publish its final affected usage interval
+ *
+ * 2. Publish immediately, then correct late data
+ *    Apply each event as it arrives and label calculated totals as provisional.
+ *    Retain ordered event history, or periodic state and usage checkpoints, so
+ *    a late event can be inserted and only the affected interval replayed.
+ *    Publish the correction as a versioned upsert or compensating update. This
+ *    suits interactive dashboards because it favours low latency, but clients
+ *    must understand that a previously displayed total can change.
+ *
+ *    pseudocode:
+ *      onEvent(applianceId, event):
+ *        1. ignore event if its ID was already seen
+ *        2. insert event into retained history by timestamp, then sequence
+ *        3. checkpoint = latest saved state at or before event.timestamp
+ *        4. replay history from checkpoint through the affected usage window
+ *        5. save updated state and publish a versioned correction
+ *
+ * Either way, it needs a stable tie-breaker for equal timestamps, an event ID
+ * for idempotent deduplication, validation before buffering, and separate
+ * state and buffers per appliance ID. The lateness allowance and correction
+ * contract should be explicit API behaviour, never an accidental consequence
+ * of arrival order.
  */
 
 module.exports = {
