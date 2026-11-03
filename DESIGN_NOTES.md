@@ -23,20 +23,29 @@ fast answers that might need correcting. Two possible ideas are...
 1. Wait for confidence with a watermark
    I.e. Keep a timestamp-ordered buffer for each appliance. Process an event only
    when it is older than a configured lateness allowance behind the newest
-   event seen. With a five-minute allowance, events older than five minutes
-   can be treated as ordered and their totals as final. This is a good fit
+   event seen. With a five-minute allowance, we can process events and finalise
+   usage up to five minutes behind the newest event. This is a good fit
    for billing or compliance, where corrections are expensive. The cost is
    delayed results, buffered memory + explicit policy for events that
    arrive after the window closes (that is, reject, quarantine, or correct them)
 
+   If the appliance stops sending events, the watermark stops moving too, leaving
+   the last few events stuck in the buffer. We'd need a heartbeat or some signal
+   that no more events are coming. A timeout is another option, though we'd still
+   have to deal with anything that turns up afterwards.
+
+   We can calculate usage up to the watermark. Beyond that, another event might
+   still arrive and change the total, so we carry the current state forward and wait.
+
    ```text
    onEvent(applianceId, event):
      1. ignore event if its ID was already seen
-     2. insert event into appliance buffer by timestamp, then sequence
-     3. latestSeen = max(latestSeen, event.timestamp)
-     4. watermark = latestSeen - allowedLateness
-     5. while oldest buffered event.timestamp <= watermark:
-          apply event and publish its final affected usage interval
+     2. handle events older than the watermark using the late-event policy
+     3. insert event into appliance buffer by timestamp, then sequence
+     4. latestSeen = max(latestSeen, event.timestamp)
+     5. watermark = latestSeen - allowedLateness
+     6. process buffered events through the watermark
+     7. publish usage through the watermark, carrying the current state forward
    ```
 
 2. Publish immediately, then correct late data
@@ -71,16 +80,20 @@ type UsageState = 'on' | 'off';
 type SavingsState = UsageState | 'auto-off';
 
 interface StateChange<TState extends string> {
-  state: TState;
-  timestamp: number;
+  readonly state: TState;
+  readonly timestamp: number;
 }
 
 interface UsageProfile<TState extends string> {
-  initial: TState;
-  events: StateChange<TState>[];
+  readonly initial: TState;
+  readonly events: readonly StateChange<TState>[];
 }
 
 type DailyUsageProfile = UsageProfile<UsageState>;
 type SavingsProfile = UsageProfile<SavingsState>;
 type MonthlyUsageProfile = UsageProfile<UsageState>;
 ```
+
+`readonly` would help catch accidental edits in TypeScript, but it doesn't stop
+JavaScript from changing the objects. Callers would still need to pass a new
+profile when the data changes.
