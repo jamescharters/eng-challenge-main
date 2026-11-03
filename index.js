@@ -157,7 +157,8 @@ const calculateEnergyUsageSimple = (profile) => {
 /**
  * Calculates the minutes saved by automatic appliance shutdowns during one day.
  * Only intervals following an auto-off event count; redundant manual-off events
- * do not end an active automatic shutdown.
+ * do not end an active automatic shutdown. Automatic-off events while already
+ * manually off do not start savings.
  *
  * @param {{initial: string, events: Array<{state: string, timestamp: number}>}} profile
  *   The initial appliance state and chronological daily state-change events.
@@ -176,7 +177,11 @@ const calculateEnergySavings = (profile) => {
       totalEnergySaved += event.timestamp - currentTimestamp;
     }
 
-    if (!(currentState === 'auto-off' && event.state === 'off')) {
+    const redundantOffEvent =
+      (currentState === 'auto-off' && event.state === 'off') ||
+      (currentState === 'off' && event.state === 'auto-off');
+
+    if (!redundantOffEvent) {
       currentState = event.state;
     }
 
@@ -242,7 +247,12 @@ const validateDay = (day) => {
  */
 const calculateEnergyUsageForDay = (monthUsageProfile, day) => {
   validateDay(day);
-  validateUsageProfile(monthUsageProfile, MAX_PROFILE_MINUTES, USAGE_STATES, true);
+  validateUsageProfile(
+    monthUsageProfile,
+    MAX_PROFILE_MINUTES,
+    USAGE_STATES,
+    true
+  );
 
   const startOfTargetDay = (day - 1) * MAX_IN_PERIOD;
   const endOfTargetDay = day * MAX_IN_PERIOD;

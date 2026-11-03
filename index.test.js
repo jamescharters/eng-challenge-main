@@ -124,6 +124,32 @@ describe('calculateEnergySavings', () => {
     expect(calculateEnergySavings(usageProfile)).toEqual(MAX_IN_PERIOD);
   });
 
+  it('does not count savings when auto-off follows a manual off', () => {
+    const usageProfile = {
+      initial: 'on',
+      events: [
+        { state: 'off', timestamp: 100 },
+        { state: 'auto-off', timestamp: 200 },
+      ],
+    };
+
+    expect(calculateEnergySavings(usageProfile)).toEqual(0);
+  });
+
+  it('counts a later automatic shutdown after ignoring auto-off while off', () => {
+    const usageProfile = {
+      initial: 'off',
+      events: [
+        { state: 'auto-off', timestamp: 100 },
+        { state: 'on', timestamp: 200 },
+        { state: 'auto-off', timestamp: 300 },
+        { state: 'on', timestamp: 400 },
+      ],
+    };
+
+    expect(calculateEnergySavings(usageProfile)).toEqual(100);
+  });
+
   it('should calculate energy savings correctly on sensible data', () => {
     const usageProfile = {
       initial: 'off',
