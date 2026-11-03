@@ -247,6 +247,18 @@ describe('calculateEnergyUsageForDay', () => {
     );
   });
 
+  it('should include an event at the start of the target day', () => {
+    expect(
+      calculateEnergyUsageForDay(
+        {
+          initial: 'off',
+          events: [{ timestamp: MAX_IN_PERIOD, state: 'on' }],
+        },
+        2
+      )
+    ).toEqual(MAX_IN_PERIOD);
+  });
+
   it('should throw an error on an out of range day number', () => {
     // The regular expression matches the message of the Error(), which is
     // the first parameter to the Error class constructor.
