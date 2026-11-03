@@ -41,6 +41,11 @@ const calculateEnergyUsageSimple = (profile) => {
   let totalEnergyUsage = 0;
   let latestTimestamp = 0;
 
+  // TODO: what about negative timestamps? or absurdly large?
+  // TODO: what about different state values beyond 'on' and 'off'?
+  // TODO: what about multiple appliances / accounts etc
+  // TODO: what about different usage quantities (kWh?) per time interval?
+
   for (const event of profile.events) {
     if (currentState === 'on') {
       totalEnergyUsage += event.timestamp - latestTimestamp;
@@ -48,6 +53,12 @@ const calculateEnergyUsageSimple = (profile) => {
 
     currentState = event.state;
     latestTimestamp = event.timestamp;
+  }
+
+  // What if the final event is still 'on'? Then we add the time difference between
+  // last timestamp in the event list and end of the day constant
+  if (currentState === 'on') {
+    totalEnergyUsage += MAX_IN_PERIOD - latestTimestamp;
   }
 
   return totalEnergyUsage;
