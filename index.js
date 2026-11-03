@@ -313,6 +313,18 @@ const calculateEnergyUsageForDaySorted = (monthUsageProfile, day) => {
   return dailyUsageIndex.getEnergyUsageForDay(day);
 };
 
+/**
+ * Streaming design note:
+ * A stream cannot guarantee timestamp order at arrival time. A simple solution
+ * buffers events until a watermark (for example, five minutes behind the latest
+ * event timestamp), then processes only events at or before that watermark.
+ * This delays final results but avoids corrections. Alternatively, retain event
+ * history and recalculate affected intervals when a late event arrives; this
+ * gives lower latency but publishes provisional totals that may later change.
+ * Real streams also need an event ID for deduplication and separate state per
+ * appliance ID.
+ */
+
 module.exports = {
   calculateEnergyUsageSimple,
   calculateEnergySavings,
