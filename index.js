@@ -36,6 +36,15 @@ const MAX_IN_PERIOD = 1440;
  * ```
  */
 
+/**
+ * Calculates the number of minutes an appliance is on during one day.
+ * Events must be chronological; each event state applies to the interval after it.
+ *
+ * @param {{initial: string, events: Array<{state: string, timestamp: number}>}} profile
+ *   The initial appliance state and its daily state-change events.
+ * @returns {number} The total on-time in minutes.
+ * @throws {Error} If the profile has invalid states, timestamps, or event order.
+ */
 const calculateEnergyUsageSimple = (profile) => {
   let currentState = profile.initial;
   let totalEnergyUsage = 0;
