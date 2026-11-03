@@ -6,7 +6,12 @@ const MAX_IN_MONTH = DAYS_IN_YEAR * MAX_IN_PERIOD;
 const USAGE_STATES = ['on', 'off'];
 const SAVINGS_STATES = [...USAGE_STATES, 'auto-off'];
 
-const validateUsageProfile = (profile, periodLength, allowedStates) => {
+const validateUsageProfile = (
+  profile,
+  periodLength,
+  allowedStates,
+  requireChronological = false
+) => {
   if (!Array.isArray(profile?.events)) {
     throw new Error('events must be an array');
   }
@@ -15,6 +20,8 @@ const validateUsageProfile = (profile, periodLength, allowedStates) => {
   if (!allowedStates.includes(profile.initial)) {
     throw new Error('invalid state');
   }
+
+  let previousTimestamp = -1;
 
   for (const event of profile.events) {
     if (!allowedStates.includes(event.state)) {
@@ -30,6 +37,14 @@ const validateUsageProfile = (profile, periodLength, allowedStates) => {
     if (event.timestamp < 0 || event.timestamp >= periodLength) {
       throw new Error('timestamp out of range');
     }
+
+    // Original calculators require chronological events; use
+    // calculateEnergyUsageForDaySorted for unordered batches.
+    if (requireChronological && event.timestamp < previousTimestamp) {
+      throw new Error('events must be chronological');
+    }
+
+    previousTimestamp = event.timestamp;
   }
 };
 
@@ -77,7 +92,7 @@ const validateUsageProfile = (profile, periodLength, allowedStates) => {
  * @throws {Error} If the profile has invalid states, timestamps, or event order.
  */
 const calculateEnergyUsageSimple = (profile) => {
-  validateUsageProfile(profile, MAX_IN_PERIOD, USAGE_STATES);
+  validateUsageProfile(profile, MAX_IN_PERIOD, USAGE_STATES, true);
 
   let currentState = profile.initial;
   let totalEnergyUsage = 0;
@@ -149,7 +164,7 @@ const calculateEnergyUsageSimple = (profile) => {
  * @throws {Error} If the profile has invalid states, timestamps, or event order.
  */
 const calculateEnergySavings = (profile) => {
-  validateUsageProfile(profile, MAX_IN_PERIOD, SAVINGS_STATES);
+  validateUsageProfile(profile, MAX_IN_PERIOD, SAVINGS_STATES, true);
 
   let currentState = profile.initial;
   let totalEnergySaved = 0;
@@ -225,7 +240,7 @@ const validateDay = (day) => {
  */
 const calculateEnergyUsageForDay = (monthUsageProfile, day) => {
   validateDay(day);
-  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES);
+  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES, true);
 
   const startOfTargetDay = (day - 1) * MAX_IN_PERIOD;
   const endOfTargetDay = day * MAX_IN_PERIOD;

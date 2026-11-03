@@ -364,6 +364,35 @@ describe('usage profile validation', () => {
     ).toThrow(/invalid state/);
   });
 
+  it('requires chronological events for the original calculators', () => {
+    const unorderedDayProfile = {
+      initial: 'off',
+      events: [
+        { state: 'on', timestamp: 200 },
+        { state: 'off', timestamp: 100 },
+      ],
+    };
+
+    expect(() => calculateEnergyUsageSimple(unorderedDayProfile)).toThrow(
+      /events must be chronological/
+    );
+    expect(() => calculateEnergySavings(unorderedDayProfile)).toThrow(
+      /events must be chronological/
+    );
+    expect(() =>
+      calculateEnergyUsageForDay(
+        {
+          initial: 'off',
+          events: [
+            { state: 'on', timestamp: MAX_IN_PERIOD + 200 },
+            { state: 'off', timestamp: MAX_IN_PERIOD + 100 },
+          ],
+        },
+        2
+      )
+    ).toThrow(/events must be chronological/);
+  });
+
   it.each([NaN, Infinity, 10.5])(
     'rejects a timestamp that is not a finite integer: %p',
     (timestamp) => {
