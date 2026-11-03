@@ -221,9 +221,75 @@ const calculateEnergyUsageForDay = (monthUsageProfile, day) => {
   return calculateEnergyUsageSimple(dayUsageProfile);
 };
 
+const sortEventsByTimestamp = (events) => {
+  const originalEvents = events.map((event, originalIndex) => ({
+    event,
+    originalIndex,
+  }));
+
+  originalEvents.sort((left, right) => {
+    const diff = left.event.timestamp - right.event.timestamp;
+    return diff || left.originalIndex - right.originalIndex;
+  });
+
+  return originalEvents.map(({ event }) => event);
+};
+
+const createDailyUsageIndex = (monthUsageProfile) => {
+  const sortedEvents = sortEventsByTimestamp(monthUsageProfile.events);
+  const dailyUsage = [];
+  let currentState = monthUsageProfile.initial;
+  let eventIndex = 0;
+
+  for (let day = 1; day <= DAYS_IN_YEAR; day += 1) {
+    const startOfDay = (day - 1) * MAX_IN_PERIOD;
+    const endOfDay = day * MAX_IN_PERIOD;
+    const dayEvents = [];
+    const initialStateForDay = currentState;
+
+    while (
+      eventIndex < sortedEvents.length &&
+      sortedEvents[eventIndex].timestamp < endOfDay
+    ) {
+      const event = sortedEvents[eventIndex];
+
+      if (event.timestamp >= startOfDay) {
+        dayEvents.push({
+          ...event,
+          timestamp: event.timestamp - startOfDay,
+        });
+      }
+
+      currentState = event.state;
+      eventIndex += 1;
+    }
+
+    dailyUsage.push(
+      calculateEnergyUsageSimple({
+        initial: initialStateForDay,
+        events: dayEvents,
+      })
+    );
+  }
+
+  return {
+    getEnergyUsageForDay(day) {
+      validateDay(day);
+      return dailyUsage[day - 1];
+    },
+  };
+};
+
+const calculateEnergyUsageForDaySorted = (monthUsageProfile, day) => {
+  const dailyUsageIndex = createDailyUsageIndex(monthUsageProfile);
+  return dailyUsageIndex.getEnergyUsageForDay(day);
+};
+
 module.exports = {
   calculateEnergyUsageSimple,
   calculateEnergySavings,
   calculateEnergyUsageForDay,
+  calculateEnergyUsageForDaySorted,
+  createDailyUsageIndex,
   MAX_IN_PERIOD,
 };

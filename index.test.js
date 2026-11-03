@@ -2,6 +2,8 @@ const {
   calculateEnergyUsageSimple,
   calculateEnergySavings,
   calculateEnergyUsageForDay,
+  calculateEnergyUsageForDaySorted,
+  createDailyUsageIndex,
   MAX_IN_PERIOD,
 } = require('./index');
 
@@ -242,6 +244,33 @@ describe('calculateEnergyUsageForDay', () => {
     expect(() => calculateEnergyUsageForDay(3.76)).toThrow(
       /must be an integer/
     );
+  });
+});
+
+describe('ordered and indexed daily usage variants', () => {
+  const unorderedProfile = {
+    initial: 'on',
+    events: [
+      { state: 'on', timestamp: 900 },
+      { state: 'off', timestamp: 500 },
+      { state: 'off', timestamp: 1400 },
+    ],
+  };
+
+  it('sorts a complete unordered profile without changing it', () => {
+    expect(calculateEnergyUsageForDaySorted(unorderedProfile, 1)).toEqual(
+      500 + (1400 - 900)
+    );
+    expect(unorderedProfile.events.map((event) => event.timestamp)).toEqual([
+      900, 500, 1400,
+    ]);
+  });
+
+  it('precomputes daily totals for repeated day queries', () => {
+    const dailyUsageIndex = createDailyUsageIndex(unorderedProfile);
+
+    expect(dailyUsageIndex.getEnergyUsageForDay(1)).toEqual(1000);
+    expect(dailyUsageIndex.getEnergyUsageForDay(2)).toEqual(0);
   });
 });
 
