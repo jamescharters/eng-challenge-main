@@ -2,7 +2,7 @@
 
 const MAX_IN_PERIOD = 1440;
 const DAYS_IN_YEAR = 365; // technically, its 365.25, but we ignore leap years for simplicity
-const MAX_IN_MONTH = DAYS_IN_YEAR * MAX_IN_PERIOD;
+const MAX_PROFILE_MINUTES = DAYS_IN_YEAR * MAX_IN_PERIOD;
 const USAGE_STATES = ['on', 'off'];
 const SAVINGS_STATES = [...USAGE_STATES, 'auto-off'];
 
@@ -242,7 +242,7 @@ const validateDay = (day) => {
  */
 const calculateEnergyUsageForDay = (monthUsageProfile, day) => {
   validateDay(day);
-  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES, true);
+  validateUsageProfile(monthUsageProfile, MAX_PROFILE_MINUTES, USAGE_STATES, true);
 
   const startOfTargetDay = (day - 1) * MAX_IN_PERIOD;
   const endOfTargetDay = day * MAX_IN_PERIOD;
@@ -298,7 +298,7 @@ const sortEventsByTimestamp = (events) => {
 // for different days are expected. It trades memory for speed by storing the
 // usage for all 365 days upfront, which may be less than ideal in some cases.
 const createDailyUsageIndex = (monthUsageProfile) => {
-  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES);
+  validateUsageProfile(monthUsageProfile, MAX_PROFILE_MINUTES, USAGE_STATES);
 
   const sortedEvents = sortEventsByTimestamp(monthUsageProfile.events);
   const dailyUsage = [];
