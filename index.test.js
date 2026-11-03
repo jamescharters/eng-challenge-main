@@ -274,3 +274,42 @@ describe('ordered and indexed daily usage variants', () => {
   });
 });
 
+describe('usage profile validation', () => {
+  it('requires events to be an array', () => {
+    expect(() => calculateEnergyUsageSimple({ initial: 'on' })).toThrow(
+      /events must be an array/
+    );
+  });
+
+  it.each([NaN, Infinity, 10.5])(
+    'rejects a timestamp that is not a finite integer: %p',
+    (timestamp) => {
+      expect(() =>
+        calculateEnergyUsageSimple({
+          initial: 'off',
+          events: [{ state: 'on', timestamp }],
+        })
+      ).toThrow(/timestamp must be a finite integer/);
+    }
+  );
+
+  it('rejects events outside the calculation period', () => {
+    expect(() =>
+      calculateEnergyUsageSimple({
+        initial: 'off',
+        events: [{ state: 'on', timestamp: -1 }],
+      })
+    ).toThrow(/timestamp out of range/);
+
+    expect(() =>
+      calculateEnergyUsageForDay(
+        {
+          initial: 'off',
+          events: [{ state: 'on', timestamp: 365 * MAX_IN_PERIOD }],
+        },
+        1
+      )
+    ).toThrow(/timestamp out of range/);
+  });
+});
+
