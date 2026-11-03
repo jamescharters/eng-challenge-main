@@ -105,7 +105,29 @@ const calculateEnergyUsageSimple = (profile) => {
  * and not manual intervention.
  */
 
-const calculateEnergySavings = (profile) => {};
+const calculateEnergySavings = (profile) => {
+  let currentState = profile.initial;
+  let totalEnergySaved = 0;
+  let currentTimestamp = 0;
+
+  for (const event of profile.events) {
+    if (currentState === 'auto-off') {
+      totalEnergySaved += event.timestamp - currentTimestamp;
+    }
+
+    if (!(currentState === 'auto-off' && event.state === 'off')) {
+      currentState = event.state;
+    }
+
+    currentTimestamp = event.timestamp;
+  }
+
+  if (currentState === 'auto-off') {
+    totalEnergySaved += MAX_IN_PERIOD - currentTimestamp;
+  }
+
+  return totalEnergySaved;
+};
 
 /**
  * PART 3
