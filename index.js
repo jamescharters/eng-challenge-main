@@ -407,6 +407,31 @@ const calculateEnergyUsageForDaySorted = (monthUsageProfile, day) => {
  * of arrival order.
  */
 
+/**
+ * PART 6: Possible TypeScript types
+ *
+ * If this were all to be converted to TypeScript...
+ *
+ * ```ts
+ * type UsageState = 'on' | 'off';
+ * type SavingsState = UsageState | 'auto-off';
+ *
+ * interface StateChange<TState extends string> {
+ *   state: TState;
+ *   timestamp: number;
+ * }
+ *
+ * interface UsageProfile<TState extends string> {
+ *   initial: TState;
+ *   events: StateChange<TState>[];
+ * }
+ *
+ * type DailyUsageProfile = UsageProfile<UsageState>;
+ * type SavingsProfile = UsageProfile<SavingsState>;
+ * type MonthlyUsageProfile = UsageProfile<UsageState>;
+ * ```
+ */
+
 module.exports = {
   calculateEnergyUsageSimple,
   calculateEnergySavings,
