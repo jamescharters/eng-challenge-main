@@ -344,13 +344,21 @@ const createDailyUsageIndex = (monthUsageProfile) => {
   };
 };
 
-// Hopeful optimisation: pre-sort events for faster daily usage calculation.
-// Indexing daily usage allows O(1) retrieval of energy usage for any given day.
-// This trades memory for speed because repeated lookups reuse precomputed usage.
-const calculateEnergyUsageForDaySorted = (monthUsageProfile, day) => {
-  validateUsageProfile(monthUsageProfile, MAX_IN_MONTH, USAGE_STATES);
+const dailyUsageIndexes = new WeakMap();
 
-  const dailyUsageIndex = createDailyUsageIndex(monthUsageProfile);
+// The first query validates, sorts, and indexes the profile. Later queries for
+// the same profile object reuse its snapshot for O(1) retrieval. Treat profiles
+// and their events as immutable: pass a new profile object when data changes.
+// WeakMap entries can be collected when callers no longer retain the profile.
+const calculateEnergyUsageForDaySorted = (monthUsageProfile, day) => {
+  validateDay(day);
+
+  let dailyUsageIndex = dailyUsageIndexes.get(monthUsageProfile);
+  if (!dailyUsageIndex) {
+    dailyUsageIndex = createDailyUsageIndex(monthUsageProfile);
+    dailyUsageIndexes.set(monthUsageProfile, dailyUsageIndex);
+  }
+
   return dailyUsageIndex.getEnergyUsageForDay(day);
 };
 

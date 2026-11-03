@@ -313,6 +313,38 @@ describe('ordered and indexed daily usage variants', () => {
     expect(dailyUsageIndex.getEnergyUsageForDay(2)).toEqual(0);
   });
 
+  it('reuses the sorted index without reading events again', () => {
+    const readEvents = jest.fn(() => unorderedProfile.events);
+    const profile = {
+      initial: 'on',
+      get events() {
+        return readEvents();
+      },
+    };
+
+    expect(calculateEnergyUsageForDaySorted(profile, 1)).toEqual(1000);
+    readEvents.mockClear();
+
+    expect(calculateEnergyUsageForDaySorted(profile, 2)).toEqual(0);
+    expect(calculateEnergyUsageForDaySorted(profile, 1)).toEqual(1000);
+    expect(readEvents).not.toHaveBeenCalled();
+    expect(() => calculateEnergyUsageForDaySorted(profile, 0)).toThrow(
+      /day out of range/
+    );
+  });
+
+  it('creates a fresh index when updated data is supplied as a new profile', () => {
+    const profile = { initial: 'off', events: [] };
+    expect(calculateEnergyUsageForDaySorted(profile, 1)).toEqual(0);
+
+    const updatedProfile = {
+      ...profile,
+      events: [{ state: 'on', timestamp: 100 }],
+    };
+    expect(calculateEnergyUsageForDaySorted(updatedProfile, 1)).toEqual(1340);
+    expect(calculateEnergyUsageForDaySorted(profile, 1)).toEqual(0);
+  });
+
   it('preserves the input order of events with matching timestamps', () => {
     expect(
       calculateEnergyUsageForDaySorted(
