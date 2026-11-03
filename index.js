@@ -176,6 +176,9 @@ const calculateEnergySavings = (profile) => {
       totalEnergySaved += event.timestamp - currentTimestamp;
     }
 
+    // The appliance is already off, so another off event changes nothing.
+    // Keep counting savings if it was switched off automatically.
+    // If it was switched off manually, there's nothing extra to save.
     const redundantOffEvent =
       (currentState === 'auto-off' && event.state === 'off') ||
       (currentState === 'off' && event.state === 'auto-off');
@@ -355,10 +358,9 @@ const createDailyUsageIndex = (monthUsageProfile) => {
 
 const dailyUsageIndexes = new WeakMap();
 
-// The first query validates, sorts, and indexes the profile. Later queries for
-// the same profile object reuse its snapshot for O(1) retrieval. Treat profiles
-// and their events as immutable: pass a new profile object when data changes.
-// WeakMap entries can be collected when callers no longer retain the profile.
+// Reuse the daily totals when querying the same profile again.
+// Pass a new profile object when the data changes, otherwise we'll
+// keep returning the old totals.
 const calculateEnergyUsageForDaySorted = (monthUsageProfile, day) => {
   validateDay(day);
 
