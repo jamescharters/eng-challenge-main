@@ -1,6 +1,7 @@
 /* The maximum number of minutes in a period (a day) */
 
 const MAX_IN_PERIOD = 1440;
+const DAYS_IN_YEAR = 365; // technically, its 365.25, but we ignore leap years for simplicity
 
 /**
  * PART 1
@@ -167,7 +168,47 @@ const calculateEnergySavings = (profile) => {
 
 const isInteger = (number) => Number.isInteger(number);
 
-const calculateEnergyUsageForDay = (monthUsageProfile, day) => {};
+const validateDay = (day) => {
+  if (!isInteger(day)) {
+    throw new Error('must be an integer');
+  }
+
+  if (day < 1 || day > DAYS_IN_YEAR) {
+    throw new Error('day out of range');
+  }
+};
+
+const calculateEnergyUsageForDay = (monthUsageProfile, day) => {
+  validateDay(day);
+
+  const startOfTargetDay = (day - 1) * MAX_IN_PERIOD;
+  const endOfTargetDay = day * MAX_IN_PERIOD;
+  let initialState = monthUsageProfile.initial;
+
+  for (const event of monthUsageProfile.events) {
+    if (event.timestamp < startOfTargetDay) {
+      initialState = event.state;
+    } else {
+      break;
+    }
+  }
+
+  const dayUsageProfile = {
+    initial: initialState,
+    events: monthUsageProfile.events
+      .filter(
+        (event) =>
+          event.timestamp >= startOfTargetDay &&
+          event.timestamp < endOfTargetDay
+      )
+      .map((event) => ({
+        ...event,
+        timestamp: event.timestamp - startOfTargetDay,
+      })),
+  };
+
+  return calculateEnergyUsageSimple(dayUsageProfile);
+};
 
 module.exports = {
   calculateEnergyUsageSimple,
