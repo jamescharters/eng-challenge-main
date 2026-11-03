@@ -105,6 +105,16 @@ const calculateEnergyUsageSimple = (profile) => {
  * and not manual intervention.
  */
 
+/**
+ * Calculates the minutes saved by automatic appliance shutdowns during one day.
+ * Only intervals following an auto-off event count; redundant manual-off events
+ * do not end an active automatic shutdown.
+ *
+ * @param {{initial: string, events: Array<{state: string, timestamp: number}>}} profile
+ *   The initial appliance state and chronological daily state-change events.
+ * @returns {number} The total automatically saved time in minutes.
+ * @throws {Error} If the profile has invalid states, timestamps, or event order.
+ */
 const calculateEnergySavings = (profile) => {
   let currentState = profile.initial;
   let totalEnergySaved = 0;
