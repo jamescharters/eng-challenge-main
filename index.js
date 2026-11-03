@@ -437,4 +437,6 @@ module.exports = {
   calculateEnergySavings,
   calculateEnergyUsageForDay,
   calculateEnergyUsageForDaySorted,
+  createDailyUsageIndex,
+  MAX_IN_PERIOD,
 };
