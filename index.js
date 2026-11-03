@@ -6,6 +6,7 @@ const MAX_IN_MONTH = DAYS_IN_YEAR * MAX_IN_PERIOD;
 const USAGE_STATES = ['on', 'off'];
 const SAVINGS_STATES = [...USAGE_STATES, 'auto-off'];
 
+// JC: added helper function
 const validateUsageProfile = (
   profile,
   periodLength,
@@ -217,6 +218,7 @@ const calculateEnergySavings = (profile) => {
 
 const isInteger = (number) => Number.isInteger(number);
 
+// JC: helper function to declutter
 const validateDay = (day) => {
   if (!isInteger(day)) {
     throw new Error('must be an integer');
