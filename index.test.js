@@ -403,6 +403,21 @@ describe('ordered and indexed daily usage variants', () => {
 });
 
 describe('usage profile validation', () => {
+  it.each([null, undefined, 'on', 100, true, []])(
+    'rejects a malformed event: %p',
+    (event) => {
+      expect(() =>
+        calculateEnergyUsageSimple({ initial: 'off', events: [event] })
+      ).toThrow(/event must be an object/);
+    }
+  );
+
+  it('rejects holes in the events array', () => {
+    expect(() =>
+      calculateEnergyUsageSimple({ initial: 'off', events: new Array(1) })
+    ).toThrow(/event must be an object/);
+  });
+
   it('requires events to be an array', () => {
     expect(() => calculateEnergyUsageSimple({ initial: 'on' })).toThrow(
       /events must be an array/

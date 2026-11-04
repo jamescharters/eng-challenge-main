@@ -25,6 +25,10 @@ const validateUsageProfile = (
   let previousTimestamp = -1;
 
   for (const event of profile.events) {
+    if (event === null || typeof event !== 'object' || Array.isArray(event)) {
+      throw new Error('event must be an object');
+    }
+
     if (!allowedStates.includes(event.state)) {
       throw new Error('invalid state');
     }
